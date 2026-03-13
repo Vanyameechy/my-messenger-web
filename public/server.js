@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // ==================== НАСТРОЙКИ ====================
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = 'your-secret-key-change-this'; // в продакшене используйте переменные окружения
 const LOG_FILE = path.join(__dirname, 'server.log');
 const DB_FILE = path.join(__dirname, 'messenger.db');
