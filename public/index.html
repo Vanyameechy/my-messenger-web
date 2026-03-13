@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мессенджер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Модальное окно входа/регистрации -->
+    <div id="auth-modal" class="modal show">
+        <div class="modal-content glass">
+            <h2 id="auth-title">Вход</h2>
+            <input type="text" id="auth-username" placeholder="Имя пользователя" autocomplete="off">
+            <input type="password" id="auth-password" placeholder="Пароль">
+            <input type="text" id="auth-displayname" placeholder="Отображаемое имя (необязательно)" style="display: none;">
+            <div class="error" id="auth-error"></div>
+            <div class="auth-buttons">
+                <button id="auth-submit" class="btn-primary btn-large">Войти</button>
+                <button id="auth-toggle" class="btn-secondary btn-large">Зарегистрироваться</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div id="main" style="display: none;">
+        <div class="app">
+            <!-- Левая панель (чаты + бургер) -->
+            <aside class="sidebar glass">
+                <div class="sidebar-header">
+                    <button id="menu-toggle" class="icon-btn burger-btn" aria-label="Меню">☰</button>
+                    <div class="user-info" id="current-user">
+                        <span id="user-displayname">Загрузка...</span>
+                        <span id="user-username"></span>
+                    </div>
+                </div>
+
+                <!-- Выпадающее меню (бургер) без эмодзи -->
+                <div id="dropdown-menu" class="dropdown-menu glass">
+                    <button class="dropdown-item" data-view="profile">Профиль</button>
+                    <button class="dropdown-item" data-view="notifications">Уведомления и звуки</button>
+                    <button class="dropdown-item" data-view="privacy">Конфиденциальность</button>
+                    <button class="dropdown-item" data-view="chat-settings">Настройки чатов</button>
+                    <button class="dropdown-item" data-view="folders">Папки</button>
+                    <button class="dropdown-item" data-view="account">Учётная запись</button>
+                    <button class="dropdown-item" data-view="appearance">Оформление</button>
+                    <button class="dropdown-item" data-view="inactivity">Удаление аккаунта</button>
+                    <button class="dropdown-item" data-view="logout">Выйти</button>
+                </div>
+
+                <div class="chats-header">
+                    <h3>Чаты</h3>
+                    <button id="new-chat-btn" class="icon-btn" aria-label="Новый чат">➕</button>
+                </div>
+                <div id="chats-list" class="chats-list"></div>
+            </aside>
+
+            <!-- Правая панель -->
+            <main class="chat-area">
+                <div class="chat-header glass">
+                    <div id="chat-title">Выберите чат</div>
+                    <div id="typing-indicator" class="typing-indicator"></div>
+                    <div id="chat-actions" style="display: none;">
+                        <button id="chat-info-btn" class="icon-btn" aria-label="Информация о чате">ℹ️</button>
+                    </div>
+                </div>
+
+                <!-- Контейнер сообщений -->
+                <div id="messages-container" class="messages-container"></div>
+
+                <!-- Панель отправки сообщений -->
+                <div id="message-input-area" class="message-input-area glass" style="display: none;">
+                    <input type="text" id="message-input" placeholder="Напишите сообщение... (можно @username)" autocomplete="off">
+                    <button id="send-btn" class="btn-send">Отправить</button>
+                </div>
+
+                <!-- Панели настроек (без эмодзи в заголовках и без иконок) -->
+                <!-- Профиль -->
+                <div id="profile-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Профиль</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Аватар (URL)</label>
+                                <input type="url" id="profile-avatar" placeholder="https://...">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Отображаемое имя</label>
+                                <input type="text" id="profile-displayname" placeholder="Ваше имя">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Номер телефона</label>
+                                <input type="tel" id="profile-phone" placeholder="+7 999 123-45-67">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>ID пользователя</label>
+                                <input type="text" id="profile-id" readonly disabled>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>О себе</label>
+                                <textarea id="profile-bio" rows="3" placeholder="Немного о себе"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="profile-error"></div>
+                    <div class="panel-actions">
+                        <button id="profile-save" class="btn-primary">Сохранить</button>
+                        <button id="profile-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Уведомления и звуки -->
+                <div id="notifications-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Уведомления и звуки</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Звук новых сообщений</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="notif-sound">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Вибрация</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="notif-vibrate">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Показывать предпросмотр</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="notif-preview">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Не беспокоить (ночной режим)</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="notif-dnd">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="notifications-error"></div>
+                    <div class="panel-actions">
+                        <button id="notifications-save" class="btn-primary">Сохранить</button>
+                        <button id="notifications-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Конфиденциальность -->
+                <div id="privacy-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Конфиденциальность</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Кто видит мой номер телефона</label>
+                                <select id="privacy-phone-visibility">
+                                    <option value="everyone">Все</option>
+                                    <option value="contacts">Мои контакты</option>
+                                    <option value="nobody">Никто</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Кто видит время последнего посещения</label>
+                                <select id="privacy-lastseen-visibility">
+                                    <option value="everyone">Все</option>
+                                    <option value="contacts">Мои контакты</option>
+                                    <option value="nobody">Никто</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Кто может писать мне</label>
+                                <select id="privacy-who-can-write">
+                                    <option value="everyone">Все</option>
+                                    <option value="contacts">Только контакты</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Кто может приглашать в группы</label>
+                                <select id="privacy-who-can-invite">
+                                    <option value="everyone">Все</option>
+                                    <option value="contacts">Только контакты</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Кто может пересылать мои сообщения</label>
+                                <select id="privacy-forward">
+                                    <option value="everyone">Все</option>
+                                    <option value="contacts">Мои контакты</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="privacy-error"></div>
+                    <div class="panel-actions">
+                        <button id="privacy-save" class="btn-primary">Сохранить</button>
+                        <button id="privacy-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Настройки чатов -->
+                <div id="chat-settings-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Настройки чатов</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Размер шрифта (px)</label>
+                                <input type="number" id="chat-font-size" min="10" max="30" value="16">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Обои чата (URL)</label>
+                                <input type="url" id="chat-wallpaper" placeholder="https://...">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Создать резервную копию</label>
+                                <button id="chat-backup" class="btn-secondary btn-small">Скачать</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Очистить историю всех чатов</label>
+                                <button id="chat-clear-history" class="btn-secondary btn-small danger">Очистить</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="chat-settings-error"></div>
+                    <div class="panel-actions">
+                        <button id="chat-settings-save" class="btn-primary">Сохранить</button>
+                        <button id="chat-settings-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Папки -->
+                <div id="folders-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Папки</h2>
+                        <button id="folder-add" class="icon-btn" style="width: auto; padding: 10px 20px;">➕ Создать папку</button>
+                    </div>
+                    <div class="settings-list" id="folders-list"></div>
+                    <div class="error" id="folders-error"></div>
+                    <div class="panel-actions">
+                        <button id="folders-save" class="btn-primary">Сохранить</button>
+                        <button id="folders-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Учётная запись -->
+                <div id="account-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Учётная запись</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Двухэтапная проверка</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="account-2fa">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item" id="2fa-password-group" style="display: none;">
+                            <div class="settings-item-content">
+                                <label>Пароль двухэтапной проверки</label>
+                                <input type="password" id="account-2fa-password" placeholder="Введите пароль">
+                                <input type="password" id="account-2fa-confirm" placeholder="Подтвердите" style="margin-top: 10px;">
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Сменить номер телефона</label>
+                                <button id="account-change-phone" class="btn-secondary btn-small">Изменить</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Удалить учётную запись</label>
+                                <button id="account-delete" class="btn-secondary btn-small danger">Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="account-error"></div>
+                    <div class="panel-actions">
+                        <button id="account-save" class="btn-primary">Сохранить</button>
+                        <button id="account-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Оформление (внешний вид) -->
+                <div id="appearance-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Оформление</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Тема оформления</label>
+                                <select id="appearance-theme">
+                                    <option value="dark">Тёмная</option>
+                                    <option value="blue">Синяя</option>
+                                    <option value="light">Светлая</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Форма облаков сообщений</label>
+                                <select id="appearance-message-style">
+                                    <option value="rounded">Скруглённые</option>
+                                    <option value="default">Классические</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Размер шрифта (глобально)</label>
+                                <input type="number" id="appearance-font-size" min="12" max="24" value="16">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="appearance-error"></div>
+                    <div class="panel-actions">
+                        <button id="appearance-save" class="btn-primary">Сохранить</button>
+                        <button id="appearance-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Удаление аккаунта при неактивности -->
+                <div id="inactivity-panel" class="settings-panel" style="display: none;">
+                    <div class="panel-header">
+                        <h2>Удаление аккаунта</h2>
+                    </div>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div class="settings-item-content">
+                                <label>Если я не заходил(а) более</label>
+                                <select id="inactivity-period">
+                                    <option value="0">Не удалять</option>
+                                    <option value="1">1 месяц</option>
+                                    <option value="3">3 месяца</option>
+                                    <option value="6">6 месяцев</option>
+                                    <option value="12">1 год</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="error" id="inactivity-error"></div>
+                    <div class="panel-actions">
+                        <button id="inactivity-save" class="btn-primary">Сохранить</button>
+                        <button id="inactivity-cancel" class="btn-secondary">Отмена</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания чата -->
+    <div id="new-chat-modal" class="modal">
+        <div class="modal-content glass">
+            <h2>Создать чат</h2>
+            <div class="form-group">
+                <label>Тип чата</label>
+                <select id="chat-type">
+                    <option value="private">Личный</option>
+                    <option value="group">Группа</option>
+                </select>
+            </div>
+            <div class="form-group" id="group-title-group" style="display: none;">
+                <label>Название группы</label>
+                <input type="text" id="group-title">
+            </div>
+            <div class="form-group">
+                <label>Участники (имена через запятую)</label>
+                <input type="text" id="chat-participants" placeholder="username1, username2">
+            </div>
+            <div class="error" id="newchat-error"></div>
+            <div class="modal-actions">
+                <button id="newchat-create" class="btn-primary btn-large">Создать</button>
+                <button id="newchat-cancel" class="btn-secondary btn-large">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно информации о чате -->
+    <div id="chat-info-modal" class="modal">
+        <div class="modal-content glass">
+            <h2>Информация о чате</h2>
+            <div id="chat-info-details"></div>
+            <div id="chat-participants-list"></div>
+            <div class="modal-actions">
+                <button id="chatinfo-close" class="btn-primary btn-large">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для папок -->
+    <div id="folder-modal" class="modal">
+        <div class="modal-content glass">
+            <h2 id="folder-modal-title">Новая папка</h2>
+            <input type="text" id="folder-name" placeholder="Название папки">
+            <div class="form-group">
+                <label>Выберите чаты для этой папки</label>
+                <div id="folder-chats-selection" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            <div class="error" id="folder-modal-error"></div>
+            <div class="modal-actions">
+                <button id="folder-modal-save" class="btn-primary">Сохранить</button>
+                <button id="folder-modal-cancel" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
